@@ -1,7 +1,7 @@
 # Notes on a few conventions
  - The models all start with `I` as a way to differentiate models from other types. On a larger codebase you'll probably work with custom types for everything, for example a `username: String` will become a `username: Handle` so that `Handle` implements custom traits for validation, serialization etc... And after a while the `I` becomes an easy way to know what's a model from a simple type.
  - The error type is a basic `Result<T, Box<dyn Error>>` here, obviously you don't want to use that and instead have an enum so you can implement `IntoResponse` from actix for example to fully benefit from the `?` operator.
- - The type use none of the surrealdb types, for example our IDs are `Option<String>` instead of a `Thing`. There are multiple reasons for that:
+ - The types use none of the surrealdb types, for example our IDs are `Option<String>` instead of a `Thing`. There are multiple reasons for that:
    - 1) We don't want our models to depend on the DB engine we use. Imagine we want to use these models in two different crates, let's say an API that connects to the DB and a SSR server that talks with the API. There is no reason for the SSR server to have to deal with surrealDB types as these will be turned into JSON during the communication.
    - 2) We might use our own custom types with custom trait implementations (validation for example)
    - 3) Subjective: I prefer native types whenever possible or basic `Wrapper(T)` types.
