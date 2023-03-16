@@ -23,9 +23,9 @@ pagination, fetch statements, etc...
 ```rs
 let handle = "john doe";
 let johndoe_posts: Vec<IPost> = IPost::find((
-  Where(json!({
+  wjson!({
     post.author().handle: handle
-  })),
+  }),
   OrderBy::asc(post.title),
 ))
 .await?;
