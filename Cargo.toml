@@ -5,6 +5,9 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[profile.release]
+debug = true
+
 [dependencies]
 serde = { version = "1.0.154", features = ["serde_derive"] }
 tokio = { version = "1.21.2", features = ["full"] }
@@ -12,5 +15,5 @@ surrealdb = { git = "https://github.com/surrealdb/surrealdb", features = ["kv-ro
 async-trait = "0.1.66"
 
 # used to quickly & easily generate sub-types
-utility-types = "0.0.2"
-surreal-simple-querybuilder = { git = "https://github.com/Aelto/surreal-simple-querybuilder", features = ["queries", "foreign"] }
+surreal-simple-querybuilder = { git = "https://github.com/Aelto/surreal-simple-querybuilder", features = ["queries", "foreign", "model"] }
+serde_json = "1.0.94"

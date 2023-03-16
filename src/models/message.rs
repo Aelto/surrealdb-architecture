@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use serde::Serialize;
+use surreal_simple_querybuilder::model;
 use surreal_simple_querybuilder::prelude::IntoKey;
 
 #[derive(Debug, Deserialize, Serialize, Default)]
@@ -8,6 +9,11 @@ pub struct IMessage {
   pub id: Option<String>,
   pub text: String,
 }
+
+model!(Message with(partial) {
+  id,
+  pub text
+});
 
 #[async_trait::async_trait]
 impl super::Model for IMessage {
