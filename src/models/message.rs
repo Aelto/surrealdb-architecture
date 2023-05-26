@@ -3,10 +3,12 @@ use serde::Serialize;
 use surreal_simple_querybuilder::model;
 use surreal_simple_querybuilder::prelude::IntoKey;
 
+use crate::types::Id;
+
 #[derive(Debug, Deserialize, Serialize, Default)]
 pub struct IMessage {
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub id: Option<String>,
+  pub id: Option<Id>,
   pub text: String,
 }
 
@@ -16,15 +18,15 @@ model!(Message with(partial) {
 });
 crate::with_model!(IMessage);
 
-impl IntoKey<String> for IMessage {
-  fn into_key<E>(&self) -> Result<String, E>
+impl IntoKey<Id> for IMessage {
+  fn into_key<E>(&self) -> Result<Id, E>
   where
     E: serde::ser::Error,
   {
     self
       .id
       .as_ref()
-      .map(String::clone)
+      .map(Id::clone)
       .ok_or(serde::ser::Error::custom("The message has no ID"))
   }
 }

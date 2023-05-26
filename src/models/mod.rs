@@ -28,9 +28,9 @@ where
   //////////////////////////////////////////////////////////////////////////////
 
   async fn m_create(self) -> ApiResult<Self> {
-    let item = DB.create(Self::table()).content(self).await?;
+    let mut item = DB.create(Self::table()).content(self).await?;
 
-    Ok(item)
+    unwrap_or_api_error(item.pop())
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -44,10 +44,10 @@ where
   }
 
   /// Delete a node using its ID
-  async fn m_delete_one(id: &str) -> ApiResult<()> {
-    DB.delete(thing(id)?).await?;
+  async fn m_delete_one(id: &str) -> ApiResult<Self> {
+    let item = DB.delete(thing(id)?).await?;
 
-    Ok(())
+    unwrap_or_api_error(item)
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -56,7 +56,7 @@ where
     if let Some(id) = self.id() {
       let item = DB.update(thing(id)?).content(self).await?;
 
-      Ok(item)
+      unwrap_or_api_error(item)
     } else {
       Ok(self)
     }
@@ -67,7 +67,7 @@ where
   async fn m_merge_one(id: &str, merge: impl Serialize + Send) -> ApiResult<Self> {
     let item = DB.update(thing(id)?).merge(merge).await?;
 
-    Ok(item)
+    unwrap_or_api_error(item)
   }
 
   async fn merge(self, merge: impl Serialize + Send) -> ApiResult<Self> {
@@ -81,19 +81,19 @@ where
 
   /// Add a value to a field, it can be an item in an array or a suffix to a string.
   ///
-  async fn m_add_one(id: &str, field: &str, value: impl Serialize + Send) -> ApiResult<()> {
-    let _diff: serde_json::Value = DB
+  async fn m_add_one(id: &str, field: &str, value: impl Serialize + Send) -> ApiResult<Self> {
+    let item = DB
       .update(thing(id)?)
       .patch(PatchOp::add(field, value))
       .await?;
 
-    Ok(())
+    unwrap_or_api_error(item)
   }
 
-  async fn m_add(&self, field: &str, value: impl Serialize + Send) -> ApiResult<()> {
+  async fn m_add(self, field: &str, value: impl Serialize + Send) -> ApiResult<Self> {
     match self.id() {
       Some(id) => Self::m_add_one(id, field, value).await,
-      None => Ok(()),
+      None => Ok(self),
     }
   }
 
@@ -102,13 +102,13 @@ where
   /// Remove a value from a field, it can be an item from an array or a suffix
   /// from a string.
   ///
-  async fn m_remove_one(id: &str, field: &str, index_or_subfield: &str) -> ApiResult<()> {
-    let _diff: serde_json::Value = DB
+  async fn m_remove_one(id: &str, field: &str, index_or_subfield: &str) -> ApiResult<Self> {
+    let item = DB
       .update(thing(id)?)
       .patch(PatchOp::remove(&format!("{field}/{index_or_subfield}")))
       .await?;
 
-    Ok(())
+    unwrap_or_api_error(item)
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -121,6 +121,8 @@ where
     let (query, params) = surreal_simple_querybuilder::queries::select("*", Self::table(), params)?;
 
     #[cfg(debug_assertions)]
+    println!("");
+    #[cfg(debug_assertions)]
     println!("🔮 query  = {query}");
     #[cfg(debug_assertions)]
     println!("🔮 params = {params:#?}");
@@ -128,6 +130,13 @@ where
     let items = DB.query(query).bind(params).await?.take(0)?;
 
     Ok(items)
+  }
+}
+
+fn unwrap_or_api_error<Opt>(some: Option<Opt>) -> ApiResult<Opt> {
+  match some {
+    Some(v) => Ok(v),
+    None => Err("unwrap-on-none".into()),
   }
 }
 

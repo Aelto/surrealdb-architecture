@@ -2,8 +2,6 @@
 #![feature(generic_const_exprs)]
 use errors::ApiResult;
 use serde_json::json;
-use surreal_simple_querybuilder::prelude::Foreign;
-use surreal_simple_querybuilder::prelude::ForeignVec;
 use surreal_simple_querybuilder::types::Cmp;
 use surreal_simple_querybuilder::types::OrderBy;
 use surreal_simple_querybuilder::types::Where;
@@ -11,10 +9,12 @@ use surreal_simple_querybuilder::wjson;
 
 use crate::client::DB;
 use crate::models::Model;
+use crate::types::ForeignVec;
 
 mod client;
 mod errors;
 mod models;
+pub mod types;
 
 #[tokio::main]
 async fn main() -> errors::ApiResult<()> {
@@ -123,7 +123,7 @@ async fn example_2() -> ApiResult<()> {
   .await?;
 
   let post_0 = IPost {
-    author: Foreign::new_key(created_user.id.clone().unwrap()),
+    author: created_user.id.clone().unwrap().into(),
     body: "Lorem ipsum dolor sit amet consectitur".into(),
     tags: vec!["example".into(), "post".into(), "first".into()],
     // we add the "0:" so we can do an order-by later-on
@@ -134,7 +134,7 @@ async fn example_2() -> ApiResult<()> {
   .await?;
 
   let post_1 = IPost {
-    author: Foreign::new_key(created_user.id.clone().unwrap()),
+    author: created_user.id.clone().unwrap().into(),
     body: "Lorem ipsum dolor sit amet consectitur".into(),
     tags: vec!["example".into(), "post".into(), "second".into()],
     // we add the "1:" so we can do an order-by later-on

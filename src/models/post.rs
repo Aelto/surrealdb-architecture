@@ -1,14 +1,13 @@
 use serde::Deserialize;
 use serde::Serialize;
 use surreal_simple_querybuilder::model;
-use surreal_simple_querybuilder::prelude::Foreign;
 
 use super::IUser;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct IPost {
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub id: Option<String>,
+  pub id: Option<Id>,
 
   pub author: Foreign<IUser>,
   pub title: String,
@@ -17,6 +16,8 @@ pub struct IPost {
 }
 
 use crate::models::user::schema::User;
+use crate::types::Foreign;
+use crate::types::Id;
 
 model!(Post with(partial) {
   id,
