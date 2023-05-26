@@ -14,17 +14,7 @@ model!(Message with(partial) {
   id,
   pub text
 });
-
-#[async_trait::async_trait]
-impl super::Model for IMessage {
-  fn table() -> &'static str {
-    "Message"
-  }
-
-  fn id(&self) -> Option<&String> {
-    self.id.as_ref()
-  }
-}
+crate::with_model!(IMessage);
 
 impl IntoKey<String> for IMessage {
   fn into_key<E>(&self) -> Result<String, E>

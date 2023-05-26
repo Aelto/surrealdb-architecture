@@ -19,17 +19,7 @@ model!(User with(partial) {
   pub handle,
   pub messages
 });
-
-#[async_trait::async_trait]
-impl super::Model for IUser {
-  fn table() -> &'static str {
-    "User"
-  }
-
-  fn id(&self) -> Option<&String> {
-    self.id.as_ref()
-  }
-}
+crate::with_model!(IUser);
 
 impl IntoKey<String> for IUser {
   fn into_key<E>(&self) -> Result<String, E>

@@ -25,14 +25,4 @@ model!(Post with(partial) {
   pub body,
   pub tags
 });
-
-#[async_trait::async_trait]
-impl super::Model for IPost {
-  fn table() -> &'static str {
-    "Post"
-  }
-
-  fn id(&self) -> Option<&String> {
-    self.id.as_ref()
-  }
-}
+crate::with_model!(IPost);

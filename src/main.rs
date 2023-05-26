@@ -39,24 +39,24 @@ async fn example_0() -> ApiResult<()> {
   use crate::models::IMessage;
   use crate::models::IUser;
 
-  let message_0 = IMessage::from("Hello").create().await?;
-  let message_1 = IMessage::from("World!").create().await?;
+  let message_0 = IMessage::from("Hello").m_create().await?;
+  let message_1 = IMessage::from("World!").m_create().await?;
 
   let created_user = IUser {
     handle: "John-Doe".to_owned(),
     messages: ForeignVec::new_value(vec![message_0, message_1]),
     id: None,
   }
-  .create()
+  .m_create()
   .await?;
 
-  let user: Option<IUser> = IUser::find(Where(("handle", "John-Doe"))).await?;
+  let user: Option<IUser> = IUser::m_find(Where(("handle", "John-Doe"))).await?;
   let found_user = user.unwrap_or_default();
 
   assert_eq!(created_user.id, found_user.id);
 
-  found_user.delete().await?;
-  let user: Option<IUser> = IUser::find(Where(("handle", "John-Doe"))).await?;
+  found_user.m_delete().await?;
+  let user: Option<IUser> = IUser::m_find(Where(("handle", "John-Doe"))).await?;
   assert!(user.is_none(), "no user found as it was deleted");
 
   Ok(())
@@ -70,17 +70,17 @@ async fn example_1() -> ApiResult<()> {
   use crate::models::IMessage;
   use crate::models::IUser;
 
-  let message_0 = IMessage::from("Hello").create().await?;
-  let message_1 = IMessage::from("World!").create().await?;
-  let message_2 = IMessage::from("Bonjour").create().await?;
-  let message_3 = IMessage::from("Le monde !").create().await?;
+  let message_0 = IMessage::from("Hello").m_create().await?;
+  let message_1 = IMessage::from("World!").m_create().await?;
+  let message_2 = IMessage::from("Bonjour").m_create().await?;
+  let message_3 = IMessage::from("Le monde !").m_create().await?;
 
   let created_user = IUser {
     handle: "John-Doe".to_owned(),
     messages: ForeignVec::new_value(vec![message_0, message_1]),
     id: None,
   }
-  .create()
+  .m_create()
   .await?;
 
   let original_id = created_user.id.clone();
@@ -97,11 +97,11 @@ async fn example_1() -> ApiResult<()> {
   assert_eq!(updated_user.handle, "Jean-Dupont".to_owned());
 
   updated_user.handle = "Foo-Bar".to_owned();
-  let updated_user = updated_user.update().await?;
+  let updated_user = updated_user.m_update().await?;
 
   assert_eq!(updated_user.handle, "Foo-Bar".to_owned());
 
-  updated_user.delete().await?;
+  updated_user.m_delete().await?;
 
   Ok(())
 }
@@ -119,7 +119,7 @@ async fn example_2() -> ApiResult<()> {
     handle: "John-Doe".to_owned(),
     ..Default::default()
   }
-  .create()
+  .m_create()
   .await?;
 
   let post_0 = IPost {
@@ -130,7 +130,7 @@ async fn example_2() -> ApiResult<()> {
     title: "0: This is an example post".into(),
     ..Default::default()
   }
-  .create()
+  .m_create()
   .await?;
 
   let post_1 = IPost {
@@ -141,12 +141,12 @@ async fn example_2() -> ApiResult<()> {
     title: "1: This is another example post".into(),
     ..Default::default()
   }
-  .create()
+  .m_create()
   .await?;
 
   // 0.
   // How to perform a simple shallow (non nested) search
-  let found_post: Option<IPost> = IPost::find(Where((
+  let found_post: Option<IPost> = IPost::m_find(Where((
     // since we want to use an operator a tag more complex than the default =
     // we use the Cmp type to specify what we want.
     Cmp("CONTAINS", json!({ post.tags: "second" })),
@@ -164,7 +164,7 @@ async fn example_2() -> ApiResult<()> {
   // How to perform a deep/nested search, search for all posts whose author
   // handle is John Doe
 
-  let johndoe_posts: Vec<IPost> = IPost::find((
+  let johndoe_posts: Vec<IPost> = IPost::m_find((
     wjson!({
       post.author().handle: created_user.handle
     }),
