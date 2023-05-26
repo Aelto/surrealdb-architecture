@@ -9,11 +9,12 @@ edition = "2021"
 debug = true
 
 [dependencies]
-serde = { version = "1.0.154", features = ["serde_derive"] }
+serde = { version = "1.0.96", features = ["serde_derive"] }
 tokio = { version = "1.21.2", features = ["full"] }
-surrealdb = { git = "https://github.com/surrealdb/surrealdb", features = ["kv-rocksdb"] }
 async-trait = "0.1.66"
+surrealdb = { git = "https://github.com/surrealdb/surrealdb", features = ["kv-rocksdb"], rev = "33c35949b7e71b32834f5918eca86ebac3de7f80" }
 
 # used to quickly & easily generate sub-types
 surreal-simple-querybuilder = { git = "https://github.com/Aelto/surreal-simple-querybuilder", features = ["queries", "foreign", "model"] }
-serde_json = "1.0.94"
+serde_json = "1.0.96"
+dunce = "1.0.4" # cross platform absolute paths for surrealdb
