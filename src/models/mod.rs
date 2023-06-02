@@ -19,7 +19,6 @@ use crate::client::DB;
 use crate::errors::ApiResult;
 
 #[async_trait::async_trait]
-#[async_trait::async_trait]
 pub trait Model
 where
   Self: Sized + Serialize + DeserializeOwned + Send + Sync,
