@@ -13,33 +13,48 @@ pagination, fetch statements, etc...
 - [Content](#content)
   - [Snippets/Showcase](#snippetsshowcase)
   - [Structure](#structure)
-  - [Models, queries \& recommandations](#models-queries--recommandations)
+  - [Models, queries \& params](#models-queries--params)
 
 # Content
 ## Snippets/Showcase
 > samples of project to quickly showcase the benefits
 
+[0]: perform a search on a single field
+```rs
+pub async fn find_by_handle(handle: &str) -> ApiResult<Option<Self>> {
+  let user = Self::m_find(Where((model.handle, handle))).await?;
+
+  Ok(user)
+}
+```
 [1]: perform a search on nested fields
 ```rs
-let handle = "john doe";
-let johndoe_posts: Vec<IPost> = IPost::find((
-  wjson!({
-    post.author().handle: handle
-  }),
-  OrderBy::asc(post.title),
-))
-.await?;
+pub async fn find_by_author_handle(handle: &str) -> ApiResult<Vec<Self>> {
+  let posts = Self::m_find((
+    wjson!({
+      model.author().handle: handle
+    }),
+    OrderBy::asc(model.title),
+  ))
+  .await?;
+
+  Ok(posts)
+}
 ```
 [2]: update only parts of a node
 ```rs
-let mut updated_user = created_user
-    .merge(
-      PartialUser::new()
-        .handle("Jean-Dupont")
-        .messages(vec![message_2, message_3])
-        .ok()?,
-    )
+pub async fn update_handle_and_messages(
+  self, handle: &str, messages: Vec<IMessage>,
+) -> ApiResult<Self> {
+  let user = self
+    .merge(json!({
+      model.handle: handle,
+      model.messages: messages
+    }))
     .await?;
+
+  Ok(user)
+}
 ```
 [3]: easily create new nodes
 ```rs
@@ -52,39 +67,29 @@ IMessage::from("Hello").create().await?
 - `src/`
   - `client/` contains the DB client's code
   - `models/` each file in the folder represents a "table" in the database. The structs that represent the tables usually start with a capital `I` to easily recognize them
-    - [`mod.rs`](/src/models/mod.rs) contains a generic `Model` trait that all models implement. The trait is the interface between our querybuilder and the DB client, that means the `DB` client should in theory never be seen in the model files.
+    - [`mod.rs`](/src/models/mod.rs) contains a generic `Model` trait that all models implement. The trait is the interface between our querybuilder and the DB client, that means the `DB` client should in theory never be seen in the model files themselves. _The generic functions are prefixed with a `m_` to easily notice when a generic `m_create` function is used vs a hand written `create()` one._
     - model files
       - `IMyModel` struct, it is used to hold the data of the nodes and represents the table
-      - `model!({})` macro call, it declares the fields on the table allows us to reference them in our queries so we have compile-time safety to make sure we references fields that exist.
+      - `model!({})` macro call, it declares the fields on the table & allows us to reference them in our queries so we have compile-time safeties to make sure we references fields that exist.
       - `impl super::Model for IMyModel` implements the generic `Model` trait for the model. It only needs to give the name of the table and a way to get a node's ID
+    - [`param/`](/src/models/params/), params are enums that implement `QueryBuilderInjecter` so you can write queries that can be adapted depending on the situation.
 
-## Models, queries & recommandations
-Since queries can be constructed as easily as:
+## Models, queries & params
+The project demonstrates the use an [of an enum](/src/models/params/user.rs) to easily adapt the queries:
 ```rs
-let users: Vec<IUser> = IUser::find(Where(json!({
-  model.handle: "John"
-}))).await?;
-```
-
-It may feel nice to always do it like this and avoid creating yourself a few functions like `IUser::find_many_by_handle(&str)` like the examples do, but i'd still recommend to write functions for the common queries  to improve code quality (and possibly compile time)
-
-The first function in the example below is easier to read and is also more future-proof for the day you'll have to find where in your entire codebase you fetch users by their handle.
-```rs
-#[get("/u/{handle}")]
-async fn index_one(info: Path<Info>) -> Result<Option<IUser>> {
-  let some_user = IUser::find_by_handle(&info.handle).await?;
-
-  Ok(some_user)
+pub enum UserParam {
+  None,
+  FetchMessages,
 }
 
-#[get("/u/{handle}")]
-async fn index_two(info: Path<Info>) -> Result<Option<IUser>> {
-  use crate::models::user::schema as user;
+impl IUser {
+  pub async fn find_by_handle(handle: &str, params: UserParam) -> ApiResult<Option<Self>> {
+    let filter = Where((model.handle, handle));
+    let user = Self::m_find((filter, params)).await?;
 
-  let some_user = IUser::find(Where(json!({
-    user.handle: info.handle
-  }))).await?;
-
-  Ok(some_user)
+    Ok(user)
+  }
 }
 ```
+
+Thanks to the `QueryBuilderInjecter` trait, each variant of the enum can be used to inject statements into the queries. We now have a `User::find_by_handle()` function that fetches either a user or a user + its messages.

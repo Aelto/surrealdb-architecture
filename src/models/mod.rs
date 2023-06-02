@@ -1,3 +1,5 @@
+mod params;
+
 pub mod message;
 pub mod post;
 pub mod user;

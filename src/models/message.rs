@@ -12,7 +12,7 @@ pub struct IMessage {
   pub text: String,
 }
 
-model!(Message with(partial) {
+model!(Message {
   id,
   pub text
 });

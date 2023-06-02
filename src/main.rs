@@ -1,14 +1,10 @@
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 use errors::ApiResult;
-use serde_json::json;
-use surreal_simple_querybuilder::types::Cmp;
-use surreal_simple_querybuilder::types::OrderBy;
-use surreal_simple_querybuilder::types::Where;
-use surreal_simple_querybuilder::wjson;
 
 use crate::client::DB;
 use crate::models::Model;
+use crate::models::UserParam;
 use crate::types::ForeignVec;
 
 mod client;
@@ -35,6 +31,7 @@ async fn main() -> errors::ApiResult<()> {
 /// This example demonstrates how:
 /// - to create nodes and retrieve them
 /// - to create nested types using Foreign & ForeignVec fields
+/// - to use an enum to adapt the queries to our needs (ex: fetch 'user.messages' only when asked)
 async fn example_0() -> ApiResult<()> {
   use crate::models::IMessage;
   use crate::models::IUser;
@@ -50,13 +47,24 @@ async fn example_0() -> ApiResult<()> {
   .m_create()
   .await?;
 
-  let user: Option<IUser> = IUser::m_find(Where(("handle", "John-Doe"))).await?;
+  let user: Option<IUser> = IUser::find_by_handle("John-Doe", UserParam::FetchMessages).await?;
   let found_user = user.unwrap_or_default();
 
   assert_eq!(created_user.id, found_user.id);
+  assert!(found_user.messages.value().is_some());
+
+  // to confirm the messages were fetched we get the text of our first message
+  // and we'll compare it to message_0.text
+  let first_message_text = found_user
+    .messages
+    .value()
+    .and_then(|messages| messages.first())
+    .map(|m| &m.text);
+
+  assert_eq!(first_message_text, Some(&String::from("Hello")));
 
   found_user.m_delete().await?;
-  let user: Option<IUser> = IUser::m_find(Where(("handle", "John-Doe"))).await?;
+  let user: Option<IUser> = IUser::find_by_handle("John-Doe", UserParam::None).await?;
   assert!(user.is_none(), "no user found as it was deleted");
 
   Ok(())
@@ -66,7 +74,6 @@ async fn example_0() -> ApiResult<()> {
 /// - to update certain fields of a node using `merge`
 /// - to mutate & update the entire node using `update`
 async fn example_1() -> ApiResult<()> {
-  use crate::models::user::schema::PartialUser;
   use crate::models::IMessage;
   use crate::models::IUser;
 
@@ -85,12 +92,7 @@ async fn example_1() -> ApiResult<()> {
 
   let original_id = created_user.id.clone();
   let mut updated_user = created_user
-    .merge(
-      PartialUser::new()
-        .handle("Jean-Dupont")
-        .messages(vec![message_2, message_3])
-        .ok()?,
-    )
+    .update_handle_and_messages("Jean-Dupont", vec![message_2, message_3])
     .await?;
 
   assert_eq!(original_id, updated_user.id);
@@ -110,8 +112,6 @@ async fn example_1() -> ApiResult<()> {
 /// - to perform simple searches over few fields
 /// - to perform deep searches over nested fields
 async fn example_2() -> ApiResult<()> {
-  use crate::models::post::schema::model as post;
-  use crate::models::post::schema::PartialPost;
   use crate::models::IPost;
   use crate::models::IUser;
 
@@ -146,14 +146,7 @@ async fn example_2() -> ApiResult<()> {
 
   // 0.
   // How to perform a simple shallow (non nested) search
-  let found_post: Option<IPost> = IPost::m_find(Where((
-    // since we want to use an operator a tag more complex than the default =
-    // we use the Cmp type to specify what we want.
-    Cmp("CONTAINS", json!({ post.tags: "second" })),
-    // also perform an exact match on the title
-    PartialPost::new().title(&post_1.title).ok()?,
-  )))
-  .await?;
+  let found_post: Option<IPost> = IPost::find_by_title_and_tag(&post_1.title, "second").await?;
 
   assert!(found_post.is_some());
   if let Some(found_post) = found_post {
@@ -163,14 +156,7 @@ async fn example_2() -> ApiResult<()> {
   // 1.
   // How to perform a deep/nested search, search for all posts whose author
   // handle is John Doe
-
-  let johndoe_posts: Vec<IPost> = IPost::m_find((
-    wjson!({
-      post.author().handle: created_user.handle
-    }),
-    OrderBy::asc(post.title),
-  ))
-  .await?;
+  let johndoe_posts: Vec<IPost> = IPost::find_by_author_handle(&created_user.handle).await?;
 
   assert_eq!(johndoe_posts.len(), 2, "found two posts: {johndoe_posts:?}");
   assert_eq!(johndoe_posts[0].id, post_0.id);
